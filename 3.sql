@@ -1,22 +1,18 @@
 SELECT 
-    run."RunnerId",
-    gen."Gender",
-    extract(year from age(e."StartDateTime", run."DateOfBirth")) AS "AgeDuringEvent",
-    e."EventId",
-    e."StartDateTime",
-    rer."RaceTime"
-FROM 
-    "Runner" run
+  m."MarathonName",
+  e."EventName",
+  to_char( (re."RaceTime" ||'seconds')::interval, 'HH24:MI:SS') as "Time",
+  RANK() OVER (PARTITION BY e."EventId" ORDER BY re."RaceTime" ASC) AS "Position",
+  RANK() OVER (PARTITION BY e."EventId", g."GenderId" ORDER BY re."RaceTime" ASC) AS "PositionGender"
+FROM
+  "Marathon" m 
+JOIN
+  "Event" e on m."MarathonId" = e."MarathonId" 
+JOIN
+  "RegistrationEvent" re on e."EventId" = re."EventId" 
+JOIN
+  "Country" c on m."CountryCode" = c."CountryCode" 
+left join 
+  "Volunteer" v on c."CountryCode" = v."CountryCode" 
 join 
-	"Gender" gen ON run."GenderId" = gen."GenderId"
-join
-	"Registration" reg on run."RunnerId" = reg."RunnerId"
-JOIN 
-    "RegistrationEvent" rer ON reg."RegistrationId" = rer."RegistrationId"
-JOIN 
-    "Event" e ON rer."EventId" = e."EventId"
-WHERE 
-    e."StartDateTime" < NOW()
-ORDER BY 
-    run."RunnerId", e."StartDateTime";
-
+  "Gender" g on g."GenderId" = g."GenderId";
